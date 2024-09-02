@@ -2,6 +2,7 @@ package domain
 
 import "time"
 
+// User struct of user in BD.
 type User struct {
 	ID        string    `bson:"_id,omitempty"`
 	Name      string    `bson:"name"`

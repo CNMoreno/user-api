@@ -8,12 +8,12 @@ import (
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/adapters"
 	"github.com/CNMoreno/cnm-proyect-go/internal/handlers"
+	"github.com/CNMoreno/cnm-proyect-go/internal/repository"
 	"github.com/CNMoreno/cnm-proyect-go/internal/usecase"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-
 	mongoURI := os.Getenv("MONGO_URL")
 	mongoDBName := os.Getenv("MONGO_DATABASE")
 
@@ -22,9 +22,14 @@ func main() {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 
-	defer mongoClient.Close()
+	defer func() {
+		if err := mongoClient.Close(); err != nil {
+			log.Printf("Error closing MongoDB connection: %v", err)
+		}
+	}()
 
-	userService := usecase.NewUserService(mongoClient.GetDatabase())
+	userRepo := repository.NewUserService(mongoClient.GetDatabase())
+	userService := usecase.NewUserService(userRepo)
 	userHandlers := &handlers.UserHandlers{UserService: userService}
 
 	r := gin.Default()

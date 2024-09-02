@@ -9,12 +9,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// UserHandlers encapsules the user-releated HTTP handlers.
 type UserHandlers struct {
 	UserService *usecase.UserService
 }
 
+// CreateUser handles the create user in BD.
 func (h *UserHandlers) CreateUser(c *gin.Context) {
-
 	var user domain.User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -31,6 +32,7 @@ func (h *UserHandlers) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
+// GetUserByID handles the get user by ID in BD.
 func (h *UserHandlers) GetUserByID(c *gin.Context) {
 	id := c.Param("id")
 
@@ -45,11 +47,10 @@ func (h *UserHandlers) GetUserByID(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
 		return
 	}
-
 	c.JSON(http.StatusOK, user)
-
 }
 
+// UpdateUser handles the update user by id in BD.
 func (h *UserHandlers) UpdateUser(c *gin.Context) {
 	id := c.Param("id")
 
@@ -70,11 +71,10 @@ func (h *UserHandlers) UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
 		return
 	}
-
 	c.JSON(http.StatusOK, user)
-
 }
 
+// DeleteUser handles the delete user by ID in BD.
 func (h *UserHandlers) DeleteUser(c *gin.Context) {
 	id := c.Param("id")
 
