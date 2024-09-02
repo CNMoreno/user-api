@@ -4,41 +4,23 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
-	"github.com/CNMoreno/cnm-proyect-go/internal/adapters"
-	"github.com/CNMoreno/cnm-proyect-go/internal/handlers"
-	"github.com/CNMoreno/cnm-proyect-go/internal/repository"
-	"github.com/CNMoreno/cnm-proyect-go/internal/usecase"
+	"github.com/CNMoreno/cnm-proyect-go/config"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	mongoURI := os.Getenv("MONGO_URL")
-	mongoDBName := os.Getenv("MONGO_DATABASE")
+	userHandlers, cleanup, err := config.SetupDependencies()
 
-	mongoClient, err := adapters.NewMongoClient(mongoURI, mongoDBName)
 	if err != nil {
-		log.Fatalf("Failed to connect to MongoDB: %v", err)
+		log.Fatalf("failed to set up dependencies: %v", err)
 	}
 
-	defer func() {
-		if err := mongoClient.Close(); err != nil {
-			log.Printf("Error closing MongoDB connection: %v", err)
-		}
-	}()
-
-	userRepo := repository.NewUserService(mongoClient.GetDatabase())
-	userService := usecase.NewUserService(userRepo)
-	userHandlers := &handlers.UserHandlers{UserService: userService}
+	defer cleanup()
 
 	r := gin.Default()
 
-	route := "/users/:id"
-	r.POST("/users", userHandlers.CreateUser)
-	r.GET(route, userHandlers.GetUserByID)
-	r.PATCH(route, userHandlers.UpdateUser)
-	r.DELETE(route, userHandlers.DeleteUser)
+	SetupRoutes(r, userHandlers)
 
 	fmt.Println("Starting my microservice")
 

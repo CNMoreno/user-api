@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/domain"
@@ -16,8 +17,8 @@ type UserService struct {
 	userCollection *mongo.Collection
 }
 
-// NewUserService join to Mongo collection.
-func NewUserService(db *mongo.Database) *UserService {
+// NewUserRepository join to Mongo collection.
+func NewUserRepository(db *mongo.Database) *UserService {
 	return &UserService{
 		userCollection: db.Collection("users"),
 	}
@@ -29,13 +30,13 @@ func (s *UserService) CreateUser(ctx context.Context, user *domain.User) (string
 	user.ID = primitive.NewObjectID().Hex()
 	user.CreatedAt = now
 	user.UpdatedAt = now
-	user.DelatedAt = now
+	user.DeletedAt = now
 	user.Enabled = true
 
 	_, err := s.userCollection.InsertOne(ctx, user)
 
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to created user in database: %w", err)
 	}
 
 	return user.ID, nil
@@ -55,7 +56,7 @@ func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User,
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get user by ID: %w", err)
 	}
 
 	return &user, nil
@@ -78,7 +79,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields ma
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to update user by ID: %w", err)
 	}
 
 	return &updatedUser, nil
@@ -87,7 +88,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields ma
 // DeleteUser handles to obtein and delete user by ID in BD.
 func (s *UserService) DeleteUser(ctx context.Context, id string) error {
 	userDelete := domain.User{
-		DelatedAt: time.Now(),
+		DeletedAt: time.Now(),
 		Enabled:   false,
 	}
 
@@ -96,7 +97,7 @@ func (s *UserService) DeleteUser(ctx context.Context, id string) error {
 	result := s.userCollection.FindOneAndUpdate(ctx, bson.M{"_id": id}, update)
 
 	if result.Err() != nil {
-		return result.Err()
+		return fmt.Errorf("failed to delete user by ID: %w", result.Err())
 	}
 
 	return nil

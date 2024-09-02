@@ -10,5 +10,5 @@ type User struct {
 	Enabled   bool      `bson:"enabled"`
 	CreatedAt time.Time `bson:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at"`
-	DelatedAt time.Time `bson:"deleted_at"`
+	DeletedAt time.Time `bson:"deleted_at"`
 }

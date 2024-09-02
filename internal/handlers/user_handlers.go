@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/domain"
@@ -14,74 +14,110 @@ type UserHandlers struct {
 	UserService *usecase.UserService
 }
 
-// CreateUser handles the create user in BD.
+// CreateUser handles the creation of a new user in database.
+// It expects a JSON body with user information and return the created user's ID.
 func (h *UserHandlers) CreateUser(c *gin.Context) {
 	var user domain.User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondWithError(c, http.StatusBadRequest, "Invalid user input", err)
 		return
 	}
 
-	id, err := h.UserService.CreateUser(context.Background(), &user)
+	id, err := h.UserService.CreateUser(c.Request.Context(), &user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondWithError(c, http.StatusInternalServerError, "Failed to create user", err)
 		return
 	}
-
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	respondWithSuccess(c, http.StatusCreated, domain.APIResponse{
+		Success: true,
+		ID:      id,
+	})
 }
 
-// GetUserByID handles the get user by ID in BD.
+// GetUserByID handles the get user by ID in database.
+// It expects a id param with user and return the user.
 func (h *UserHandlers) GetUserByID(c *gin.Context) {
 	id := c.Param("id")
 
-	user, err := h.UserService.GetUserByID(context.Background(), id)
+	user, err := h.UserService.GetUserByID(c.Request.Context(), id)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		respondWithError(c, http.StatusInternalServerError, "Failed to get user", err)
 		return
 	}
 
 	if user == nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		respondWithError(c, http.StatusNotFound, "User not found", nil)
 		return
 	}
-	c.JSON(http.StatusOK, user)
+	respondWithSuccess(c, http.StatusCreated, domain.APIResponse{
+		Success: true,
+		ID:      id,
+		Name:    user.Name,
+		Email:   user.Email,
+	})
 }
 
-// UpdateUser handles the update user by id in BD.
+// UpdateUser handles the update user by id in database.
+// It expects a JSON body with update user information and return the user.
 func (h *UserHandlers) UpdateUser(c *gin.Context) {
 	id := c.Param("id")
 
 	var updateFields map[string]interface{}
 	if err := c.ShouldBindJSON(&updateFields); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondWithError(c, http.StatusInternalServerError, "Invalid user input", err)
 		return
 	}
 
-	user, err := h.UserService.UpdateUser(context.Background(), id, updateFields)
+	user, err := h.UserService.UpdateUser(c.Request.Context(), id, updateFields)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondWithError(c, http.StatusInternalServerError, "Failed to update user", err)
 		return
 	}
 
 	if user == nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		respondWithError(c, http.StatusNotFound, "User not found", nil)
 		return
 	}
-	c.JSON(http.StatusOK, user)
+	respondWithSuccess(c, http.StatusCreated, domain.APIResponse{
+		Success: true,
+		ID:      id,
+		Name:    user.Name,
+		Email:   user.Email,
+	})
 }
 
-// DeleteUser handles the delete user by ID in BD.
+// DeleteUser handles the delete user by ID in database.
+// It expects a id param with user and return status no content.
 func (h *UserHandlers) DeleteUser(c *gin.Context) {
 	id := c.Param("id")
 
-	err := h.UserService.DeleteUser(context.Background(), id)
+	err := h.UserService.DeleteUser(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondWithError(c, http.StatusInternalServerError, "Failed to delete user", err)
+		return
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func respondWithError(c *gin.Context, code int, message string, err error) {
+	apiErr := &domain.Errors{
+		Code:    fmt.Sprintf("U%v", code),
+		Message: message,
+	}
+
+	if err != nil {
+		apiErr.Details = err.Error()
+	}
+
+	c.JSON(code, domain.APIResponse{
+		Success: false,
+		Errors:  apiErr})
+}
+
+func respondWithSuccess(c *gin.Context, code int, response domain.APIResponse) {
+	c.JSON(code, response)
 }
