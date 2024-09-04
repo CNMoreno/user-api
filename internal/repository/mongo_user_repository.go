@@ -2,10 +2,10 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/domain"
+	"github.com/CNMoreno/cnm-proyect-go/internal/security"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -32,11 +32,16 @@ func (s *UserService) CreateUser(ctx context.Context, user *domain.User) (string
 	user.UpdatedAt = now
 	user.DeletedAt = now
 	user.Enabled = true
+	password, err := security.HashPassword(user.Password)
+	if err != nil {
+		return "", err
+	}
+	user.Password = password
 
-	_, err := s.userCollection.InsertOne(ctx, user)
+	_, err = s.userCollection.InsertOne(ctx, user)
 
 	if err != nil {
-		return "", fmt.Errorf("failed to created user in database: %w", err)
+		return "", err
 	}
 
 	return user.ID, nil
@@ -56,15 +61,16 @@ func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User,
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to get user by ID: %w", err)
+		return nil, err
 	}
 
 	return &user, nil
 }
 
 // UpdateUser handles to obtein and update user by ID in BD.
-func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields map[string]interface{}) (*domain.User, error) {
-	updateFields["updated_at"] = time.Now()
+func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields domain.User) (*domain.User, error) {
+	updateFields.DeletedAt = time.Now()
+	updateFields.Enabled = true
 
 	filter := bson.M{
 		"_id":     id,
@@ -79,7 +85,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields ma
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to update user by ID: %w", err)
+		return nil, err
 	}
 
 	return &updatedUser, nil
@@ -87,17 +93,20 @@ func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields ma
 
 // DeleteUser handles to obtein and delete user by ID in BD.
 func (s *UserService) DeleteUser(ctx context.Context, id string) error {
-	userDelete := domain.User{
-		DeletedAt: time.Now(),
-		Enabled:   false,
+	filter := bson.M{
+		"_id":     id,
+		"enabled": true,
 	}
 
-	update := bson.M{"$set": userDelete}
+	update := bson.M{"$set": bson.M{
+		"enabled":   false,
+		"deletedAt": time.Now(),
+	}}
 
-	result := s.userCollection.FindOneAndUpdate(ctx, bson.M{"_id": id}, update)
+	result := s.userCollection.FindOneAndUpdate(ctx, filter, update)
 
 	if result.Err() != nil {
-		return fmt.Errorf("failed to delete user by ID: %w", result.Err())
+		return result.Err()
 	}
 
 	return nil

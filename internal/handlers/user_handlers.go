@@ -52,10 +52,11 @@ func (h *UserHandlers) GetUserByID(c *gin.Context) {
 		return
 	}
 	respondWithSuccess(c, http.StatusCreated, domain.APIResponse{
-		Success: true,
-		ID:      id,
-		Name:    user.Name,
-		Email:   user.Email,
+		Success:  true,
+		ID:       id,
+		Name:     user.Name,
+		Email:    user.Email,
+		UserName: user.UserName,
 	})
 }
 
@@ -64,13 +65,13 @@ func (h *UserHandlers) GetUserByID(c *gin.Context) {
 func (h *UserHandlers) UpdateUser(c *gin.Context) {
 	id := c.Param("id")
 
-	var updateFields map[string]interface{}
+	var updateFields domain.User
 	if err := c.ShouldBindJSON(&updateFields); err != nil {
-		respondWithError(c, http.StatusInternalServerError, "Invalid user input", err)
+		respondWithError(c, http.StatusBadRequest, "Invalid user input", err)
 		return
 	}
 
-	user, err := h.UserService.UpdateUser(c.Request.Context(), id, updateFields)
+	user, err := h.UserService.UpdateUser(c.Request.Context(), id, &updateFields)
 
 	if err != nil {
 		respondWithError(c, http.StatusInternalServerError, "Failed to update user", err)
@@ -81,11 +82,12 @@ func (h *UserHandlers) UpdateUser(c *gin.Context) {
 		respondWithError(c, http.StatusNotFound, "User not found", nil)
 		return
 	}
-	respondWithSuccess(c, http.StatusCreated, domain.APIResponse{
-		Success: true,
-		ID:      id,
-		Name:    user.Name,
-		Email:   user.Email,
+	respondWithSuccess(c, http.StatusOK, domain.APIResponse{
+		Success:  true,
+		ID:       id,
+		Name:     user.Name,
+		Email:    user.Email,
+		UserName: user.UserName,
 	})
 }
 

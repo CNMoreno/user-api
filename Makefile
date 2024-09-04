@@ -6,3 +6,6 @@ coverage:
 	go tool cover -html=coverage.out
 
 build: docker-compose up --build 
+
+mockery:
+	mockery --dir ./internal/repository --output ./mocks/repository --all 

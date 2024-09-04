@@ -2,11 +2,12 @@ package domain
 
 // APIResponse response endpoints.
 type APIResponse struct {
-	Success bool    `json:"success"`
-	Errors  *Errors `json:"errors,omitempty"`
-	ID      string  `json:"id,omitempty"`
-	Name    string  `json:"name,omitempty"`
-	Email   string  `json:"email,omitempty"`
+	Success  bool    `json:"success"`
+	Errors   *Errors `json:"errors,omitempty"`
+	ID       string  `json:"id,omitempty"`
+	Name     string  `json:"name,omitempty"`
+	Email    string  `json:"email,omitempty"`
+	UserName string  `json:"userName,omitempty"`
 }
 
 // Errors handles errors in endpoints.

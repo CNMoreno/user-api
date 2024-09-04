@@ -8,6 +8,7 @@ import (
 	"github.com/CNMoreno/cnm-proyect-go/internal/adapters"
 	"github.com/CNMoreno/cnm-proyect-go/internal/handlers"
 	"github.com/CNMoreno/cnm-proyect-go/internal/repository"
+	"github.com/CNMoreno/cnm-proyect-go/internal/security"
 	"github.com/CNMoreno/cnm-proyect-go/internal/usecase"
 )
 
@@ -32,7 +33,10 @@ func SetupDependencies() (*handlers.UserHandlers, func(), error) {
 
 	userRepo := repository.NewUserRepository(mongoClient.GetDatabase())
 	userService := usecase.NewUserService(userRepo)
-	userHandlers := &handlers.UserHandlers{UserService: userService}
+	security.NewValidator()
+	userHandlers := &handlers.UserHandlers{
+		UserService: userService,
+	}
 
 	cleanup := func() {
 		if err := mongoClient.Close(); err != nil {

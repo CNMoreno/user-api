@@ -5,10 +5,12 @@ import "time"
 // User struct of user in BD.
 type User struct {
 	ID        string    `bson:"_id,omitempty"`
-	Name      string    `bson:"name"`
-	Email     string    `bson:"email"`
+	Name      string    `bson:"name" binding:"required"`
+	Email     string    `bson:"email" binding:"required,email"`
 	Enabled   bool      `bson:"enabled"`
-	CreatedAt time.Time `bson:"created_at"`
-	UpdatedAt time.Time `bson:"updated_at"`
-	DeletedAt time.Time `bson:"deleted_at"`
+	Password  string    `bson:"password" binding:"required,min=8,password"`
+	UserName  string    `bson:"userName" binding:"required"`
+	CreatedAt time.Time `bson:"createdAt"`
+	UpdatedAt time.Time `bson:"updatedAt"`
+	DeletedAt time.Time `bson:"deletedAt"`
 }

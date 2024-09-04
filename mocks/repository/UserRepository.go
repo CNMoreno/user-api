@@ -91,7 +91,7 @@ func (_m *UserRepository) GetUserByID(ctx context.Context, id string) (*domain.U
 }
 
 // UpdateUser provides a mock function with given fields: ctx, id, updateFields
-func (_m *UserRepository) UpdateUser(ctx context.Context, id string, updateFields map[string]interface{}) (*domain.User, error) {
+func (_m *UserRepository) UpdateUser(ctx context.Context, id string, updateFields *domain.User) (*domain.User, error) {
 	ret := _m.Called(ctx, id, updateFields)
 
 	if len(ret) == 0 {
@@ -100,10 +100,10 @@ func (_m *UserRepository) UpdateUser(ctx context.Context, id string, updateField
 
 	var r0 *domain.User
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]interface{}) (*domain.User, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, *domain.User) (*domain.User, error)); ok {
 		return rf(ctx, id, updateFields)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]interface{}) *domain.User); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, *domain.User) *domain.User); ok {
 		r0 = rf(ctx, id, updateFields)
 	} else {
 		if ret.Get(0) != nil {
@@ -111,7 +111,7 @@ func (_m *UserRepository) UpdateUser(ctx context.Context, id string, updateField
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, map[string]interface{}) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, *domain.User) error); ok {
 		r1 = rf(ctx, id, updateFields)
 	} else {
 		r1 = ret.Error(1)

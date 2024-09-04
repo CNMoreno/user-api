@@ -30,7 +30,7 @@ func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User,
 }
 
 // UpdateUser interface for update user by ID.
-func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields map[string]interface{}) (*domain.User, error) {
+func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields *domain.User) (*domain.User, error) {
 	return s.userRepo.UpdateUser(ctx, id, updateFields)
 }
 
