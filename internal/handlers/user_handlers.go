@@ -47,7 +47,7 @@ func (h *UserHandlers) GetUserByID(c *gin.Context) {
 		return
 	}
 
-	if user == nil {
+	if user == nil && err == nil {
 		respondWithError(c, http.StatusNotFound, "User not found", nil)
 		return
 	}
@@ -78,7 +78,7 @@ func (h *UserHandlers) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	if user == nil {
+	if user == nil && err == nil {
 		respondWithError(c, http.StatusNotFound, "User not found", nil)
 		return
 	}

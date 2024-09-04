@@ -108,10 +108,11 @@ func TestGetUserByID(t *testing.T) {
 			statusCode: http.StatusCreated,
 		},
 		{
-			name:       "should return an error when user by ID not exist in database",
-			id:         "1234435",
-			statusCode: http.StatusNotFound,
-			isError:    true,
+			name:         "should return an error when user by ID not exist in database",
+			id:           "1234435",
+			statusCode:   http.StatusNotFound,
+			isError:      true,
+			userResponse: nil,
 		},
 		{
 			name:       "should return an error when bd return an error",
@@ -171,7 +172,7 @@ type updateTest struct {
 
 func TestUpdateUser(t *testing.T) {
 	testCasesUpdate := []updateTest{
-		/*{
+		{
 			name: "should update and return a user sucessfully",
 			id:   "12345",
 			userResponse: &domain.User{
@@ -188,22 +189,27 @@ func TestUpdateUser(t *testing.T) {
 			statusCode: http.StatusOK,
 		},
 		{
-			name:        "should return an error when is an invalid body",
-			isError:     true,
-			statusCode:  http.StatusBadRequest,
-			isErrorBody: true,
-		},*/
-		{
-			name: "should return an error when user by ID does not exist in database 1111",
-			id:   "123443543654",
+			name:         "should return an error when user try update by ID does not exist in database",
+			id:           "123443543654",
+			statusCode:   http.StatusNotFound,
+			isError:      true,
+			userResponse: nil,
 			body: &domain.User{
-				Name:     "a",
-				Email:    "a@gmail.com",
+				Name:     "Cristian",
+				Email:    "cristian@gmail.com",
 				Password: "Test123*",
-				UserName: "a",
+				UserName: "cristian",
 			},
-			statusCode: http.StatusNotFound,
+		},
+		{
+			name:       "should return an error when is an invalid body for update user",
 			isError:    true,
+			statusCode: http.StatusBadRequest,
+			body: &domain.User{
+				Name:     "Cristian",
+				Email:    "cristian@gmail.com",
+				UserName: "cristian",
+			},
 		},
 	}
 
@@ -216,12 +222,13 @@ func TestUpdateUser(t *testing.T) {
 
 			fmt.Println(test.body)
 
+			bodyBytes, _ := json.Marshal(test.body)
+
 			mockRepo.On("UpdateUser", mock.Anything, test.id, test.body).Return(test.userResponse, test.err)
 
 			userService.UpdateUser(context.Background(), test.id, test.body)
-			bodyBytes, _ := json.Marshal(test.body)
 
-			req, _ := mockRequestEndPoint(test.isError, "PATCH", "/users/"+test.id, bytes.NewBuffer(bodyBytes))
+			req, _ := mockRequestEndPoint(test.isErrorBody, "PATCH", "/users/"+test.id, bytes.NewBuffer(bodyBytes))
 			req.Header.Set("Content-Type", "application/json")
 
 			resp := httptest.NewRecorder()
