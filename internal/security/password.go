@@ -35,9 +35,9 @@ func passwordValidator(f1 validator.FieldLevel) bool {
 	password := f1.Field().String()
 
 	hasLowerCase := regexp.MustCompile(`[a-z]`).MatchString(password)
-	hasUperCase := regexp.MustCompile(`[A-Z]`).MatchString(password)
+	hasUpperCase := regexp.MustCompile(`[A-Z]`).MatchString(password)
 	hasNumber := regexp.MustCompile(`\d`).MatchString(password)
 	hasSpecialCharacter := regexp.MustCompile(`[@$!%*?&]`).MatchString(password)
 
-	return hasLowerCase && hasUperCase && hasNumber && hasSpecialCharacter
+	return hasLowerCase && hasUpperCase && hasNumber && hasSpecialCharacter
 }

@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/domain"
@@ -9,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// UserHandlers encapsules the user-releated HTTP handlers.
+// UserHandlers encapsulates the user-related HTTP handlers.
 type UserHandlers struct {
 	UserService *usecase.UserService
 }
@@ -43,14 +45,17 @@ func (h *UserHandlers) GetUserByID(c *gin.Context) {
 	user, err := h.UserService.GetUserByID(c.Request.Context(), id)
 
 	if err != nil {
+
+		if errors.Is(err, mongo.ErrNoDocuments) {
+
+			respondWithError(c, http.StatusNotFound, "User not found", nil)
+			return
+		}
+
 		respondWithError(c, http.StatusInternalServerError, "Failed to get user", err)
 		return
 	}
 
-	if user == nil && err == nil {
-		respondWithError(c, http.StatusNotFound, "User not found", nil)
-		return
-	}
 	respondWithSuccess(c, http.StatusCreated, domain.APIResponse{
 		Success:  true,
 		ID:       id,
@@ -74,14 +79,17 @@ func (h *UserHandlers) UpdateUser(c *gin.Context) {
 	user, err := h.UserService.UpdateUser(c.Request.Context(), id, &updateFields)
 
 	if err != nil {
+
+		if errors.Is(err, mongo.ErrNoDocuments) {
+
+			respondWithError(c, http.StatusNotFound, "User not found", nil)
+			return
+		}
+
 		respondWithError(c, http.StatusInternalServerError, "Failed to update user", err)
 		return
 	}
 
-	if user == nil && err == nil {
-		respondWithError(c, http.StatusNotFound, "User not found", nil)
-		return
-	}
 	respondWithSuccess(c, http.StatusOK, domain.APIResponse{
 		Success:  true,
 		ID:       id,
@@ -98,6 +106,12 @@ func (h *UserHandlers) DeleteUser(c *gin.Context) {
 
 	err := h.UserService.DeleteUser(c.Request.Context(), id)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+
+			respondWithError(c, http.StatusNotFound, "User not found", nil)
+			return
+		}
+
 		respondWithError(c, http.StatusInternalServerError, "Failed to delete user", err)
 		return
 	}

@@ -14,7 +14,7 @@ const (
 	TIMEOUT = 10
 )
 
-// MongoClient encapsules the mongo connection.
+// MongoClient encapsulates the mongo connection.
 type MongoClient struct {
 	client *mongo.Client
 	db     *mongo.Database

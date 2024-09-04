@@ -2,10 +2,9 @@ package handlers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -66,7 +65,7 @@ func TestCreateUser(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
-			mockRepo, userService, handler, router := configurations()
+			mockRepo, handler, router := configurations()
 
 			router.POST("/users", handler.CreateUser)
 
@@ -74,11 +73,9 @@ func TestCreateUser(t *testing.T) {
 
 			mockRepo.On("CreateUser", mock.Anything, test.body).Return("12345", test.err)
 
-			id, err := userService.CreateUser(context.Background(), test.body)
-
 			req, _ := mockRequestEndPoint(test.isErrorBody, "POST", "/users", bytes.NewBuffer(bodyBytes))
-
 			req.Header.Set("Content-Type", "application/json")
+
 			resp := httptest.NewRecorder()
 
 			router.ServeHTTP(resp, req)
@@ -86,11 +83,12 @@ func TestCreateUser(t *testing.T) {
 			if test.isError {
 				assert.Equal(t, test.statusCode, resp.Code)
 			} else {
+				var response domain.APIResponse
+				err := json.Unmarshal(resp.Body.Bytes(), &response)
 				assert.NoError(t, err)
-				assert.Equal(t, "12345", id)
+				assert.Equal(t, "12345", response.ID)
 				assert.Equal(t, test.statusCode, resp.Code)
 			}
-			mockRepo.AssertExpectations(t)
 		})
 	}
 }
@@ -98,7 +96,7 @@ func TestCreateUser(t *testing.T) {
 func TestGetUserByID(t *testing.T) {
 	testCases := []createTestStruct{
 		{
-			name: "should return a user sucessfully",
+			name: "should return a user successfully",
 			id:   "12345",
 			userResponse: &domain.User{
 				Name:     "test",
@@ -108,11 +106,11 @@ func TestGetUserByID(t *testing.T) {
 			statusCode: http.StatusCreated,
 		},
 		{
-			name:         "should return an error when user by ID not exist in database",
-			id:           "1234435",
-			statusCode:   http.StatusNotFound,
-			isError:      true,
-			userResponse: nil,
+			name:       "should return an error when user by ID not exist in database",
+			id:         "1234435",
+			statusCode: http.StatusNotFound,
+			isError:    true,
+			err:        mongo.ErrNoDocuments,
 		},
 		{
 			name:       "should return an error when bd return an error",
@@ -126,13 +124,11 @@ func TestGetUserByID(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 
-			mockRepo, userService, handler, router := configurations()
+			mockRepo, handler, router := configurations()
 
 			router.GET("/users/:id", handler.GetUserByID)
 
 			mockRepo.On("GetUserByID", mock.Anything, test.id).Return(test.userResponse, test.err)
-
-			userService.GetUserByID(context.Background(), test.id)
 
 			req, _ := mockRequestEndPoint(test.isError, "GET", "/users/"+test.id, nil)
 			req.Header.Set("Content-Type", "application/json")
@@ -173,7 +169,7 @@ type updateTest struct {
 func TestUpdateUser(t *testing.T) {
 	testCasesUpdate := []updateTest{
 		{
-			name: "should update and return a user sucessfully",
+			name: "should update and return a user successfully",
 			id:   "12345",
 			userResponse: &domain.User{
 				Name:     "test",
@@ -189,49 +185,56 @@ func TestUpdateUser(t *testing.T) {
 			statusCode: http.StatusOK,
 		},
 		{
-			name:         "should return an error when user try update by ID does not exist in database",
-			id:           "123443543654",
-			statusCode:   http.StatusNotFound,
-			isError:      true,
-			userResponse: nil,
+			name:        "should return an error when is an invalid body for update user",
+			id:          "12345",
+			isError:     true,
+			statusCode:  http.StatusBadRequest,
+			isErrorBody: true,
+		},
+		{
+			name:       "should return an error when user try update by ID does not exist in database",
+			id:         "123443543654",
+			statusCode: http.StatusNotFound,
+			isError:    true,
 			body: &domain.User{
 				Name:     "Cristian",
 				Email:    "cristian@gmail.com",
 				Password: "Test123*",
 				UserName: "cristian",
 			},
+			err: mongo.ErrNoDocuments,
 		},
 		{
-			name:       "should return an error when is an invalid body for update user",
+			name:       "should return an error when user try update by ID does not exist in database",
+			id:         "123443543654",
+			statusCode: http.StatusInternalServerError,
 			isError:    true,
-			statusCode: http.StatusBadRequest,
 			body: &domain.User{
 				Name:     "Cristian",
 				Email:    "cristian@gmail.com",
+				Password: "Test123*",
 				UserName: "cristian",
 			},
+			err: errors.New("some error"),
 		},
 	}
 
 	for _, test := range testCasesUpdate {
 		t.Run(test.name, func(t *testing.T) {
 
-			mockRepo, userService, handler, router := configurations()
+			mockRepo, handler, router := configurations()
 
 			router.PATCH("/users/:id", handler.UpdateUser)
-
-			fmt.Println(test.body)
 
 			bodyBytes, _ := json.Marshal(test.body)
 
 			mockRepo.On("UpdateUser", mock.Anything, test.id, test.body).Return(test.userResponse, test.err)
 
-			userService.UpdateUser(context.Background(), test.id, test.body)
-
 			req, _ := mockRequestEndPoint(test.isErrorBody, "PATCH", "/users/"+test.id, bytes.NewBuffer(bodyBytes))
 			req.Header.Set("Content-Type", "application/json")
 
 			resp := httptest.NewRecorder()
+
 			router.ServeHTTP(resp, req)
 
 			if test.isError {
@@ -247,6 +250,59 @@ func TestUpdateUser(t *testing.T) {
 				assert.Equal(t, test.userResponse.Email, response.Email)
 
 			}
+		})
+	}
+
+}
+
+func TestDeleteUserByID(t *testing.T) {
+	testCases := []createTestStruct{
+		{
+			name: "should disable user in database",
+			id:   "12345",
+			userResponse: &domain.User{
+				Name:     "test",
+				Email:    "test@gmail.com",
+				UserName: "test",
+			},
+			statusCode: http.StatusNoContent,
+		},
+		{
+			name:       "should return an error when delete user by ID not exist in database",
+			id:         "1234435",
+			statusCode: http.StatusNotFound,
+			isError:    true,
+			err:        mongo.ErrNoDocuments,
+		},
+		{
+			name:       "should return an error when bd return an error deleting user",
+			err:        errors.New("some error"),
+			id:         "12345",
+			isError:    true,
+			statusCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+
+			mockRepo, handler, router := configurations()
+
+			router.DELETE("/users/:id", handler.DeleteUser)
+
+			mockRepo.On("DeleteUser", mock.Anything, test.id).Return(test.err)
+
+			req, _ := mockRequestEndPoint(false, "DELETE", "/users/"+test.id, nil)
+			req.Header.Set("Content-Type", "application/json")
+
+			resp := httptest.NewRecorder()
+			router.ServeHTTP(resp, req)
+
+			if test.isError {
+				assert.Equal(t, test.statusCode, resp.Code)
+			} else {
+				assert.Equal(t, test.statusCode, resp.Code)
+			}
 			mockRepo.AssertExpectations(t)
 		})
 	}
@@ -261,7 +317,7 @@ func mockRequestEndPoint(isError bool, method string, api string, body io.Reader
 	return http.NewRequest(method, api, body)
 }
 
-func configurations() (*mocks.UserRepository, *usecase.UserService, UserHandlers, *gin.Engine) {
+func configurations() (*mocks.UserRepository, UserHandlers, *gin.Engine) {
 	mockRepo := new(mocks.UserRepository)
 
 	userService := usecase.NewUserService(mockRepo)
@@ -272,5 +328,5 @@ func configurations() (*mocks.UserRepository, *usecase.UserService, UserHandlers
 
 	router := gin.Default()
 
-	return mockRepo, userService, handler, router
+	return mockRepo, handler, router
 }

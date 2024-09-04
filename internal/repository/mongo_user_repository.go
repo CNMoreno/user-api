@@ -12,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// UserService struc of user in Mongo collection.
+// UserService struct of user in Mongo collection.
 type UserService struct {
 	userCollection *mongo.Collection
 }
@@ -24,7 +24,7 @@ func NewUserRepository(db *mongo.Database) *UserService {
 	}
 }
 
-// CreateUser in BD.
+// CreateUser handles to create user in database.
 func (s *UserService) CreateUser(ctx context.Context, user *domain.User) (string, error) {
 	now := time.Now()
 	user.ID = primitive.NewObjectID().Hex()
@@ -47,7 +47,7 @@ func (s *UserService) CreateUser(ctx context.Context, user *domain.User) (string
 	return user.ID, nil
 }
 
-// GetUserByID handles to obtain user by ID.
+// GetUserByID handles to obtain user by ID in database.
 func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
 	var user domain.User
 
@@ -58,16 +58,13 @@ func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User,
 
 	err := s.userCollection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
 		return nil, err
 	}
 
 	return &user, nil
 }
 
-// UpdateUser handles to obtein and update user by ID in BD.
+// UpdateUser handles to obtain and update user by ID in database.
 func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields *domain.User) (*domain.User, error) {
 	updateFields.DeletedAt = time.Now()
 	updateFields.Enabled = true
@@ -82,16 +79,13 @@ func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields *d
 	err := s.userCollection.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedUser)
 
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
 		return nil, err
 	}
 
 	return &updatedUser, nil
 }
 
-// DeleteUser handles to obtein and delete user by ID in BD.
+// DeleteUser handles to obtain and delete user by ID in database.
 func (s *UserService) DeleteUser(ctx context.Context, id string) error {
 	filter := bson.M{
 		"_id":     id,

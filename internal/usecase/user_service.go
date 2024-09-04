@@ -7,7 +7,7 @@ import (
 	"github.com/CNMoreno/cnm-proyect-go/internal/repository"
 )
 
-// UserService handles to obtein user repository.
+// UserService handles to obtain user repository.
 type UserService struct {
 	userRepo repository.UserRepository
 }
