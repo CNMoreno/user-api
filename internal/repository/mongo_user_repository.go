@@ -68,7 +68,7 @@ func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User,
 }
 
 // UpdateUser handles to obtein and update user by ID in BD.
-func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields domain.User) (*domain.User, error) {
+func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields *domain.User) (*domain.User, error) {
 	updateFields.DeletedAt = time.Now()
 	updateFields.Enabled = true
 
