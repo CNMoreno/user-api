@@ -2,7 +2,7 @@ test_to_file = go test -coverprofile=coverage.out
 
 
 coverage:
-	$(test_to_file) ./internal/handlers/ ./internal/usecase
+	$(test_to_file) ./internal/adapters ./internal/handlers/ ./internal/repository ./internal/security ./internal/usecase
 	go tool cover -html=coverage.out
 
 build: docker-compose up --build 
