@@ -12,4 +12,5 @@ func SetupRoutes(r *gin.Engine, userHandlers *handlers.UserHandlers) {
 	r.GET(route, userHandlers.GetUserByID)
 	r.PATCH(route, userHandlers.UpdateUser)
 	r.DELETE(route, userHandlers.DeleteUser)
+	r.POST("/users/batch", userHandlers.CreateBatchUser)
 }

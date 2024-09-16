@@ -3,12 +3,16 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
+	"path/filepath"
+	"strings"
+
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/domain"
 	"github.com/CNMoreno/cnm-proyect-go/internal/usecase"
 	"github.com/gin-gonic/gin"
+	"github.com/gocarina/gocsv"
 )
 
 // UserHandlers encapsulates the user-related HTTP handlers.
@@ -34,6 +38,52 @@ func (h *UserHandlers) CreateUser(c *gin.Context) {
 	respondWithSuccess(c, http.StatusCreated, domain.APIResponse{
 		Success: true,
 		ID:      id,
+	})
+}
+
+func (h *UserHandlers) CreateBatchUser(c *gin.Context) {
+	file, err := c.FormFile("file")
+
+	if err != nil {
+		respondWithError(c, http.StatusBadRequest, "Failed to get file", err)
+		return
+	}
+
+	extension := strings.ToLower(filepath.Ext(file.Filename))
+
+	if extension != ".csv" {
+		respondWithError(c, http.StatusBadRequest, "Only accept csv file", err)
+		return
+	}
+
+	csvFile, err := file.Open()
+
+	if err != nil {
+		respondWithError(c, http.StatusInternalServerError, "Error opening file", err)
+		return
+	}
+
+	defer csvFile.Close()
+
+	var users []domain.User
+
+	if err := gocsv.Unmarshal(csvFile, &users); err != nil {
+		respondWithError(c, http.StatusBadRequest, "Error processing CSV file", err)
+		return
+	}
+
+	usersIDsResponse, err := h.UserService.CreateUserBatch(c.Request.Context(), &users)
+
+	fmt.Println(usersIDsResponse...)
+
+	if err != nil {
+		respondWithError(c, http.StatusInternalServerError, "Error inserting users", err)
+		return
+	}
+
+	respondWithSuccess(c, http.StatusOK, domain.APIResponse{
+		Success: true,
+		IDs:     usersIDsResponse,
 	})
 }
 

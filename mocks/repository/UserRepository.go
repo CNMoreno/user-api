@@ -42,6 +42,36 @@ func (_m *UserRepository) CreateUser(ctx context.Context, user *domain.User) (st
 	return r0, r1
 }
 
+// CreateUserBatch provides a mock function with given fields: ctx, user
+func (_m *UserRepository) CreateUserBatch(ctx context.Context, user *[]domain.User) ([]interface{}, error) {
+	ret := _m.Called(ctx, user)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateUserBatch")
+	}
+
+	var r0 []interface{}
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *[]domain.User) ([]interface{}, error)); ok {
+		return rf(ctx, user)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *[]domain.User) []interface{}); ok {
+		r0 = rf(ctx, user)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]interface{})
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *[]domain.User) error); ok {
+		r1 = rf(ctx, user)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // DeleteUser provides a mock function with given fields: ctx, id
 func (_m *UserRepository) DeleteUser(ctx context.Context, id string) error {
 	ret := _m.Called(ctx, id)

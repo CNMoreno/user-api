@@ -47,6 +47,35 @@ func (s *UserService) CreateUser(ctx context.Context, user *domain.User) (string
 	return user.ID, nil
 }
 
+// CreateUserBatch handles to create users in database.
+func (s *UserService) CreateUserBatch(ctx context.Context, users *[]domain.User) ([]interface{}, error) {
+	now := time.Now()
+
+	var validUsers []interface{}
+
+	for _, user := range *users {
+		user.ID = primitive.NewObjectID().Hex()
+		user.CreatedAt = now
+		user.UpdatedAt = now
+		user.DeletedAt = now
+		user.Enabled = true
+		password, err := security.HashPassword(user.Password)
+		if err != nil {
+			return nil, err
+		}
+		user.Password = password
+		validUsers = append(validUsers, user)
+	}
+
+	usersIDs, err := s.userCollection.InsertMany(ctx, validUsers)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return usersIDs.InsertedIDs, nil
+}
+
 // GetUserByID handles to obtain user by ID in database.
 func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
 	var user domain.User
