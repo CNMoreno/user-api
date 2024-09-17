@@ -14,8 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/domain"
-	"github.com/CNMoreno/cnm-proyect-go/internal/security"
 	"github.com/CNMoreno/cnm-proyect-go/internal/usecase"
+	"github.com/CNMoreno/cnm-proyect-go/internal/utils"
 	mocks "github.com/CNMoreno/cnm-proyect-go/mocks/repository"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -129,7 +129,6 @@ func TestGetUserByID(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
-
 			mockRepo, handler, router := configurations()
 
 			router.GET(fmt.Sprintf(withID, route), handler.GetUserByID)
@@ -144,7 +143,6 @@ func TestGetUserByID(t *testing.T) {
 			if test.isError {
 				assert.Equal(t, test.statusCode, resp.Code)
 			} else {
-
 				assert.Equal(t, test.statusCode, resp.Code)
 				var response domain.APIResponse
 				err := json.Unmarshal(resp.Body.Bytes(), &response)
@@ -152,12 +150,10 @@ func TestGetUserByID(t *testing.T) {
 				assert.Equal(t, test.userResponse.Name, response.Name)
 				assert.Equal(t, test.userResponse.UserName, response.UserName)
 				assert.Equal(t, test.userResponse.Email, response.Email)
-
 			}
 			mockRepo.AssertExpectations(t)
 		})
 	}
-
 }
 
 func TestUpdateUser(t *testing.T) {
@@ -196,7 +192,6 @@ func TestUpdateUser(t *testing.T) {
 
 	for _, test := range testCasesUpdate {
 		t.Run(test.name, func(t *testing.T) {
-
 			mockRepo, handler, router := configurations()
 
 			router.PATCH(fmt.Sprintf(withID, route), handler.UpdateUser)
@@ -214,7 +209,6 @@ func TestUpdateUser(t *testing.T) {
 			if test.isError {
 				assert.Equal(t, test.statusCode, resp.Code)
 			} else {
-
 				assert.Equal(t, test.statusCode, resp.Code)
 				var response domain.APIResponse
 				err := json.Unmarshal(resp.Body.Bytes(), &response)
@@ -222,11 +216,9 @@ func TestUpdateUser(t *testing.T) {
 				assert.Equal(t, test.userResponse.Name, response.Name)
 				assert.Equal(t, test.userResponse.UserName, response.UserName)
 				assert.Equal(t, test.userResponse.Email, response.Email)
-
 			}
 		})
 	}
-
 }
 
 func TestDeleteUserByID(t *testing.T) {
@@ -253,7 +245,6 @@ func TestDeleteUserByID(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
-
 			mockRepo, handler, router := configurations()
 
 			router.DELETE(fmt.Sprintf(withID, route), handler.DeleteUser)
@@ -270,7 +261,6 @@ func TestDeleteUserByID(t *testing.T) {
 			mockRepo.AssertExpectations(t)
 		})
 	}
-
 }
 
 func mockRequestEndPoint(isError bool, method string, api string, body io.Reader) (*http.Request, error) {
@@ -291,7 +281,7 @@ func configurations() (*mocks.UserRepository, UserHandlers, *gin.Engine) {
 
 	handler := UserHandlers{UserService: userService}
 
-	security.NewValidator()
+	utils.NewValidator()
 
 	router := gin.Default()
 

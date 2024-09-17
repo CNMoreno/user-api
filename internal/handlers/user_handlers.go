@@ -4,15 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path/filepath"
-	"strings"
 
 	"go.mongodb.org/mongo-driver/mongo"
 
+	"github.com/CNMoreno/cnm-proyect-go/internal/constants"
 	"github.com/CNMoreno/cnm-proyect-go/internal/domain"
+	"github.com/CNMoreno/cnm-proyect-go/internal/utils"
+
 	"github.com/CNMoreno/cnm-proyect-go/internal/usecase"
 	"github.com/gin-gonic/gin"
-	"github.com/gocarina/gocsv"
 )
 
 // UserHandlers encapsulates the user-related HTTP handlers.
@@ -26,64 +26,18 @@ func (h *UserHandlers) CreateUser(c *gin.Context) {
 	var user domain.User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
-		respondWithError(c, http.StatusBadRequest, "Invalid user input", err)
+		respondWithError(c, http.StatusBadRequest, constants.ErrInvalidUserInput, err)
 		return
 	}
 
 	id, err := h.UserService.CreateUser(c.Request.Context(), &user)
 	if err != nil {
-		respondWithError(c, http.StatusInternalServerError, "Failed to create user", err)
+		respondWithError(c, http.StatusInternalServerError, constants.ErrFailedToCreateUser, err)
 		return
 	}
 	respondWithSuccess(c, http.StatusCreated, domain.APIResponse{
 		Success: true,
 		ID:      id,
-	})
-}
-
-func (h *UserHandlers) CreateBatchUser(c *gin.Context) {
-	file, err := c.FormFile("file")
-
-	if err != nil {
-		respondWithError(c, http.StatusBadRequest, "Failed to get file", err)
-		return
-	}
-
-	extension := strings.ToLower(filepath.Ext(file.Filename))
-
-	if extension != ".csv" {
-		respondWithError(c, http.StatusBadRequest, "Only accept csv file", err)
-		return
-	}
-
-	csvFile, err := file.Open()
-
-	if err != nil {
-		respondWithError(c, http.StatusInternalServerError, "Error opening file", err)
-		return
-	}
-
-	defer csvFile.Close()
-
-	var users []domain.User
-
-	if err := gocsv.Unmarshal(csvFile, &users); err != nil {
-		respondWithError(c, http.StatusBadRequest, "Error processing CSV file", err)
-		return
-	}
-
-	usersIDsResponse, err := h.UserService.CreateUserBatch(c.Request.Context(), &users)
-
-	fmt.Println(usersIDsResponse...)
-
-	if err != nil {
-		respondWithError(c, http.StatusInternalServerError, "Error inserting users", err)
-		return
-	}
-
-	respondWithSuccess(c, http.StatusOK, domain.APIResponse{
-		Success: true,
-		IDs:     usersIDsResponse,
 	})
 }
 
@@ -93,16 +47,12 @@ func (h *UserHandlers) GetUserByID(c *gin.Context) {
 	id := c.Param("id")
 
 	user, err := h.UserService.GetUserByID(c.Request.Context(), id)
-
 	if err != nil {
-
 		if errors.Is(err, mongo.ErrNoDocuments) {
-
-			respondWithError(c, http.StatusNotFound, "User not found", nil)
+			respondWithError(c, http.StatusNotFound, constants.ErrUserNotFound, nil)
 			return
 		}
-
-		respondWithError(c, http.StatusInternalServerError, "Failed to get user", err)
+		respondWithError(c, http.StatusInternalServerError, constants.ErrFailedToGetUser, err)
 		return
 	}
 
@@ -122,21 +72,18 @@ func (h *UserHandlers) UpdateUser(c *gin.Context) {
 
 	var updateFields domain.User
 	if err := c.ShouldBindJSON(&updateFields); err != nil {
-		respondWithError(c, http.StatusBadRequest, "Invalid user input", err)
+		respondWithError(c, http.StatusBadRequest, constants.ErrInvalidUserInput, err)
 		return
 	}
 
 	user, err := h.UserService.UpdateUser(c.Request.Context(), id, &updateFields)
 
 	if err != nil {
-
 		if errors.Is(err, mongo.ErrNoDocuments) {
-
-			respondWithError(c, http.StatusNotFound, "User not found", nil)
+			respondWithError(c, http.StatusNotFound, constants.ErrUserNotFound, nil)
 			return
 		}
-
-		respondWithError(c, http.StatusInternalServerError, "Failed to update user", err)
+		respondWithError(c, http.StatusInternalServerError, constants.ErrFailedToUpdateUser, err)
 		return
 	}
 
@@ -157,16 +104,46 @@ func (h *UserHandlers) DeleteUser(c *gin.Context) {
 	err := h.UserService.DeleteUser(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-
-			respondWithError(c, http.StatusNotFound, "User not found", nil)
+			respondWithError(c, http.StatusNotFound, constants.ErrUserNotFound, nil)
 			return
 		}
 
-		respondWithError(c, http.StatusInternalServerError, "Failed to delete user", err)
+		respondWithError(c, http.StatusInternalServerError, constants.ErrFailedToDeleteUser, err)
 		return
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// CreateBatchUser handles create batch of user in database.
+func (h *UserHandlers) CreateBatchUser(c *gin.Context) {
+	file, err := c.FormFile("file")
+
+	if err != nil {
+		respondWithError(c, http.StatusBadRequest, constants.ErrFailedToGetFile, err)
+		return
+	}
+
+	users, message := utils.ReadCSVFile(file)
+
+	if message != "" {
+		if message == constants.ErrOpenFile {
+			respondWithError(c, http.StatusInternalServerError, message, nil)
+		}
+		respondWithError(c, http.StatusBadRequest, message, nil)
+	}
+
+	usersIDsResponse, err := h.UserService.CreateUserBatch(c.Request.Context(), &users)
+
+	if err != nil {
+		respondWithError(c, http.StatusInternalServerError, constants.ErrInsertUsers, err)
+		return
+	}
+
+	respondWithSuccess(c, http.StatusOK, domain.APIResponse{
+		Success: true,
+		IDs:     usersIDsResponse,
+	})
 }
 
 func respondWithError(c *gin.Context, code int, message string, err error) {

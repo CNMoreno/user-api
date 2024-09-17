@@ -8,8 +8,8 @@ import (
 	"github.com/CNMoreno/cnm-proyect-go/internal/adapters"
 	"github.com/CNMoreno/cnm-proyect-go/internal/handlers"
 	"github.com/CNMoreno/cnm-proyect-go/internal/repository"
-	"github.com/CNMoreno/cnm-proyect-go/internal/security"
 	"github.com/CNMoreno/cnm-proyect-go/internal/usecase"
+	"github.com/CNMoreno/cnm-proyect-go/internal/utils"
 )
 
 // SetupDependencies initializes all the dependencies required by the application.
@@ -33,7 +33,7 @@ func SetupDependencies() (*handlers.UserHandlers, func(), error) {
 
 	userRepo := repository.NewUserRepository(mongoClient.GetDatabase())
 	userService := usecase.NewUserService(userRepo)
-	security.NewValidator()
+	utils.NewValidator()
 	userHandlers := &handlers.UserHandlers{
 		UserService: userService,
 	}

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/domain"
-	"github.com/CNMoreno/cnm-proyect-go/internal/security"
+	"github.com/CNMoreno/cnm-proyect-go/internal/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -32,7 +32,7 @@ func (s *UserService) CreateUser(ctx context.Context, user *domain.User) (string
 	user.UpdatedAt = now
 	user.DeletedAt = now
 	user.Enabled = true
-	password, err := security.HashPassword(user.Password)
+	password, err := utils.HashPassword(user.Password)
 	if err != nil {
 		return "", err
 	}
@@ -59,7 +59,7 @@ func (s *UserService) CreateUserBatch(ctx context.Context, users *[]domain.User)
 		user.UpdatedAt = now
 		user.DeletedAt = now
 		user.Enabled = true
-		password, err := security.HashPassword(user.Password)
+		password, err := utils.HashPassword(user.Password)
 		if err != nil {
 			return nil, err
 		}
