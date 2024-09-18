@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/adapters"
+	"github.com/CNMoreno/cnm-proyect-go/internal/constants"
 	"github.com/CNMoreno/cnm-proyect-go/internal/handlers"
 	"github.com/CNMoreno/cnm-proyect-go/internal/repository"
 	"github.com/CNMoreno/cnm-proyect-go/internal/usecase"
@@ -18,12 +19,12 @@ func SetupDependencies() (*handlers.UserHandlers, func(), error) {
 	mongoURI := os.Getenv("MONGO_URL")
 
 	if mongoURI == "" {
-		return nil, nil, fmt.Errorf("MONGO_URL is not set")
+		return nil, nil, fmt.Errorf(constants.ErrMongoUrlIsNotSet)
 	}
 
 	mongoDBName := os.Getenv("MONGO_DATABASE")
 	if mongoDBName == "" {
-		return nil, nil, fmt.Errorf("MONGO_DATABASE is not set")
+		return nil, nil, fmt.Errorf(constants.ErrMongoDatabaseIsNotSet)
 	}
 
 	mongoClient, err := adapters.NewMongoClient(mongoURI, mongoDBName)
@@ -40,7 +41,7 @@ func SetupDependencies() (*handlers.UserHandlers, func(), error) {
 
 	cleanup := func() {
 		if err := mongoClient.Close(); err != nil {
-			log.Printf("Error closing MongoDB connection: %v", err)
+			log.Printf("%v: %v", constants.ErrCloseMongoConnection, err)
 		}
 	}
 

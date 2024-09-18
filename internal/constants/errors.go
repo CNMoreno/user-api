@@ -15,4 +15,8 @@ var (
 	ErrInsertUsers            = "Failed to create users"
 	ErrClosingMongoConnection = "Failed closing MongoDB connection"
 	ErrClosingFile            = "Failed closing File"
+	ErrMongoUrlIsNotSet       = "MONGO_URL is not set"
+	ErrMongoDatabaseIsNotSet  = "MONGO_DATABASE is not set"
+	ErrCloseMongoConnection   = "Failed closing MongoDB connection"
+	ErrSetUpDependencies      = "Failed to set up dependencies"
 )
