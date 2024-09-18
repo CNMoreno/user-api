@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,9 @@ import (
 	"github.com/CNMoreno/cnm-proyect-go/internal/repository"
 	"github.com/CNMoreno/cnm-proyect-go/internal/usecase"
 	"github.com/CNMoreno/cnm-proyect-go/internal/utils"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // SetupDependencies initializes all the dependencies required by the application.
@@ -32,7 +36,15 @@ func SetupDependencies() (*handlers.UserHandlers, func(), error) {
 		return nil, nil, err
 	}
 
-	userRepo := repository.NewUserRepository(mongoClient.GetDatabase())
+	userCollection := mongoClient.GetDatabase().Collection("users")
+
+	err = createUniqueIndexes(userCollection)
+
+	if err != nil {
+		log.Fatalf("%v: %v", constants.ErrCreateMongoIndex, err)
+	}
+	userRepo := repository.NewUserRepository(userCollection)
+
 	userService := usecase.NewUserService(userRepo)
 	utils.NewValidator()
 	userHandlers := &handlers.UserHandlers{
@@ -46,4 +58,33 @@ func SetupDependencies() (*handlers.UserHandlers, func(), error) {
 	}
 
 	return userHandlers, cleanup, nil
+}
+
+func createUniqueIndexes(collection *mongo.Collection) error {
+	emailIndexModel := mongo.IndexModel{
+		Keys: bson.D{
+			{
+				Key:   "email",
+				Value: 1,
+			},
+		},
+		Options: options.Index().SetUnique(true),
+	}
+
+	userNameIndexModel := mongo.IndexModel{
+		Keys: bson.D{
+			{
+				Key:   "userName",
+				Value: 1,
+			},
+		},
+		Options: options.Index().SetUnique(true),
+	}
+
+	_, err := collection.Indexes().CreateMany(context.TODO(), []mongo.IndexModel{emailIndexModel, userNameIndexModel})
+
+	if err != nil {
+		return err
+	}
+	return nil
 }

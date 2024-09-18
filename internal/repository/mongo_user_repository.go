@@ -18,9 +18,9 @@ type UserService struct {
 }
 
 // NewUserRepository join to Mongo collection.
-func NewUserRepository(db *mongo.Database) *UserService {
+func NewUserRepository(collection *mongo.Collection) *UserService {
 	return &UserService{
-		userCollection: db.Collection("users"),
+		userCollection: collection,
 	}
 }
 
@@ -95,17 +95,25 @@ func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User,
 
 // UpdateUser handles to obtain and update user by ID in database.
 func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields *domain.User) (*domain.User, error) {
-	updateFields.DeletedAt = time.Now()
-	updateFields.Enabled = true
-
+	password, err := utils.HashPassword(updateFields.Password)
+	if err != nil {
+		return &domain.User{}, err
+	}
 	filter := bson.M{
 		"_id":     id,
 		"enabled": true,
 	}
-	update := bson.M{"$set": updateFields}
-
+	update := bson.M{"$set": bson.M{
+		"updatedAt": time.Now(),
+		"name":      updateFields.Name,
+		"email":     updateFields.Email,
+		"password":  password,
+		"userName":  updateFields.UserName,
+	},
+	}
 	var updatedUser domain.User
-	err := s.userCollection.FindOneAndUpdate(ctx, filter, update, options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&updatedUser)
+	optionsUpdate := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	err = s.userCollection.FindOneAndUpdate(ctx, filter, update, optionsUpdate).Decode(&updatedUser)
 
 	if err != nil {
 		return nil, err

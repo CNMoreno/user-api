@@ -32,6 +32,10 @@ func (h *UserHandlers) CreateUser(c *gin.Context) {
 
 	id, err := h.UserService.CreateUser(c.Request.Context(), &user)
 	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			respondWithError(c, http.StatusBadRequest, constants.ErrUserOrEmailInUse, err)
+			return
+		}
 		respondWithError(c, http.StatusInternalServerError, constants.ErrFailedToCreateUser, err)
 		return
 	}
@@ -81,6 +85,10 @@ func (h *UserHandlers) UpdateUser(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			respondWithError(c, http.StatusNotFound, constants.ErrUserNotFound, nil)
+			return
+		}
+		if mongo.IsDuplicateKeyError(err) {
+			respondWithError(c, http.StatusBadRequest, constants.ErrUserOrEmailInUse, err)
 			return
 		}
 		respondWithError(c, http.StatusInternalServerError, constants.ErrFailedToUpdateUser, err)
@@ -136,11 +144,15 @@ func (h *UserHandlers) CreateBatchUser(c *gin.Context) {
 	usersIDsResponse, err := h.UserService.CreateUserBatch(c.Request.Context(), &users)
 
 	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			respondWithError(c, http.StatusBadRequest, constants.ErrUserOrEmailInUse, err)
+			return
+		}
 		respondWithError(c, http.StatusInternalServerError, constants.ErrInsertUsers, err)
 		return
 	}
 
-	respondWithSuccess(c, http.StatusOK, domain.APIResponse{
+	respondWithSuccess(c, http.StatusCreated, domain.APIResponse{
 		Success: true,
 		IDs:     usersIDsResponse,
 	})

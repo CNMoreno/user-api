@@ -19,4 +19,6 @@ var (
 	ErrMongoDatabaseIsNotSet  = "MONGO_DATABASE is not set"
 	ErrCloseMongoConnection   = "Failed closing MongoDB connection"
 	ErrSetUpDependencies      = "Failed to set up dependencies"
+	ErrCreateMongoIndex       = "Failed create mongo index"
+	ErrUserOrEmailInUse       = "User or Email is in use"
 )

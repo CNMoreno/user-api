@@ -10,6 +10,10 @@ import (
 	"github.com/gocarina/gocsv"
 )
 
+var OpenFileFunc = func(file *multipart.FileHeader) (multipart.File, error) {
+	return file.Open()
+}
+
 // ReadCSVFile handles read csv and extract data and assing to user.
 func ReadCSVFile(file *multipart.FileHeader) ([]domain.User, string) {
 	extension := strings.ToLower(filepath.Ext(file.Filename))
@@ -17,7 +21,7 @@ func ReadCSVFile(file *multipart.FileHeader) ([]domain.User, string) {
 		return nil, constants.ErrOnlyAcceptCSVFile
 	}
 
-	csvFile, err := file.Open()
+	csvFile, err := OpenFileFunc(file)
 	if err != nil {
 		return nil, constants.ErrOpenFile
 	}
