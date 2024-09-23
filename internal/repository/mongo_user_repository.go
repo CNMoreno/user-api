@@ -2,33 +2,35 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/domain"
-	"github.com/CNMoreno/cnm-proyect-go/internal/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MongoRepository interface {
-	CreateUser(ctx context.Context, user *domain.User) (string, error)
-	CreateUserBatch(ctx context.Context, users *[]domain.User) ([]interface{}, error)
-	GetUserByID(ctx context.Context, id string) (*domain.User, error)
-	UpdateUser(ctx context.Context, id string, updateFields *domain.User) (*domain.User, error)
-	DeleteUser(ctx context.Context, id string) error
+// IMongoCollectionInterface Define an interface for the collection
+type IMongoCollectionInterface interface {
+	InsertOne(ctx context.Context, document interface{}, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error)
+	InsertMany(ctx context.Context, documents []interface{}, opts ...*options.InsertManyOptions) (*mongo.InsertManyResult, error)
+	FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult
+	FindOneAndUpdate(ctx context.Context, filter interface{}, update interface{}, opts ...*options.FindOneAndUpdateOptions) *mongo.SingleResult
 }
 
 // UserService struct of user in Mongo collection.
 type UserService struct {
-	userCollection *mongo.Collection
+	userCollection IMongoCollectionInterface
+	hashPassword   func(string) (string, error)
 }
 
 // NewUserRepository join to Mongo collection.
-func NewUserRepository(collection *mongo.Collection) *UserService {
+func NewUserRepository(collection IMongoCollectionInterface, hashFunc func(string) (string, error)) *UserService {
 	return &UserService{
 		userCollection: collection,
+		hashPassword:   hashFunc,
 	}
 }
 
@@ -40,7 +42,7 @@ func (s *UserService) CreateUser(ctx context.Context, user *domain.User) (string
 	user.UpdatedAt = now
 	user.DeletedAt = now
 	user.Enabled = true
-	password, err := utils.HashPassword(user.Password)
+	password, err := s.hashPassword(user.Password)
 	if err != nil {
 		return "", err
 	}
@@ -67,7 +69,7 @@ func (s *UserService) CreateUserBatch(ctx context.Context, users *[]domain.User)
 		user.UpdatedAt = now
 		user.DeletedAt = now
 		user.Enabled = true
-		password, err := utils.HashPassword(user.Password)
+		password, err := s.hashPassword(user.Password)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +95,10 @@ func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User,
 		"enabled": true,
 	}
 
-	err := s.userCollection.FindOne(ctx, filter).Decode(&user)
+	result := s.userCollection.FindOne(ctx, filter)
+	fmt.Println(&result)
+	err := result.Decode(&user)
+
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +108,7 @@ func (s *UserService) GetUserByID(ctx context.Context, id string) (*domain.User,
 
 // UpdateUser handles to obtain and update user by ID in database.
 func (s *UserService) UpdateUser(ctx context.Context, id string, updateFields *domain.User) (*domain.User, error) {
-	password, err := utils.HashPassword(updateFields.Password)
+	password, err := s.hashPassword(updateFields.Password)
 	if err != nil {
 		return &domain.User{}, err
 	}

@@ -43,7 +43,7 @@ func SetupDependencies() (*handlers.UserHandlers, func(), error) {
 	if err != nil {
 		log.Fatalf("%v: %v", constants.ErrCreateMongoIndex, err)
 	}
-	userRepo := repository.NewUserRepository(userCollection)
+	userRepo := repository.NewUserRepository(userCollection, utils.HashPassword)
 
 	userService := usecase.NewUserService(userRepo)
 	utils.NewValidator()
