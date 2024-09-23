@@ -7,7 +7,7 @@ coverage:
 
 build: docker-compose up --build 
 
-mockery:
+mock:
 	mockery --dir ./internal/repository --output ./mocks/repository --all 
 
 lint:

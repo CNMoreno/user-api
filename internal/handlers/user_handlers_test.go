@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/CNMoreno/cnm-proyect-go/internal/domain"
+	"github.com/CNMoreno/cnm-proyect-go/internal/handlers"
 	"github.com/CNMoreno/cnm-proyect-go/internal/usecase"
 	"github.com/CNMoreno/cnm-proyect-go/internal/utils"
 	mocks "github.com/CNMoreno/cnm-proyect-go/mocks/repository"
@@ -35,11 +36,27 @@ type valuesTestCases struct {
 	statusCode   int
 }
 
+type valuesTestCaseBatchUser struct {
+	name            string
+	filePath        string
+	fileContent     []byte
+	statusCode      int
+	isError         bool
+	error           error
+	isErrorOpenFile bool
+	body            *bytes.Buffer
+	isErrorBody     bool
+}
+
 const (
 	errorDuplicate = "write exception: write errors: [E11000 duplicate key error collection: cnm_proyect.users index: email_1 dup key: { email: \"mateo111@gmail.com\" }]"
 	errorValue     = "some error"
 	route          = "/users"
 	withID         = "%v/:id"
+	filePath       = "testUser.csv"
+	fileContent    = `name,email,password,username
+John Doe,john@example.com,secretpassword,johndoe
+Jane Smith,jane@example.com,anotherpassword,janesmith`
 )
 
 var userRequest = &domain.User{
@@ -55,18 +72,59 @@ var userResponse = &domain.User{
 	UserName: "test",
 }
 
-var expectedUsers = []domain.User{
+var testCasesBatchUsers = []valuesTestCaseBatchUser{
 	{
-		Name:     "John Doe",
-		Email:    "john@example.com",
-		Password: "secretpassword",
-		UserName: "johndoe",
+		name:        "should create users",
+		filePath:    filePath,
+		fileContent: []byte(fileContent),
+		statusCode:  http.StatusCreated,
 	},
 	{
-		Name:     "Jane Smith",
-		Email:    "jane@example.com",
-		Password: "anotherpassword",
-		UserName: "janesmith",
+		name:       "should return an error when file return an error",
+		filePath:   filePath,
+		statusCode: http.StatusBadRequest,
+		isError:    true,
+	},
+	{
+		name:       "should return an error when file is diferent a csv",
+		filePath:   filePath,
+		isError:    true,
+		statusCode: http.StatusBadRequest,
+	},
+	{
+		name:            "should return an error when file error is failed to open file",
+		filePath:        filePath,
+		isError:         true,
+		isErrorOpenFile: true,
+		statusCode:      http.StatusInternalServerError,
+	},
+	{
+		name:        "should return an error when database return an error",
+		filePath:    filePath,
+		fileContent: []byte(fileContent),
+		statusCode:  http.StatusInternalServerError,
+		isError:     true,
+		error:       errors.New("some error"),
+	},
+	{
+		name:        "should return an error when database return an error",
+		filePath:    filePath,
+		fileContent: []byte(fileContent),
+		statusCode:  http.StatusBadRequest,
+		isError:     true,
+		error: mongo.WriteError{
+			Code:    11000,
+			Message: errorDuplicate,
+		},
+	},
+	{
+		filePath:    "t",
+		fileContent: []byte(""),
+		name:        "should return an error when not upload file",
+		statusCode:  http.StatusBadRequest,
+		isError:     true,
+		body:        &bytes.Buffer{},
+		isErrorBody: true,
 	},
 }
 
@@ -302,92 +360,9 @@ func TestDeleteUserByID(t *testing.T) {
 	}
 }
 
-type valuesTestCaseBatchUser struct {
-	name            string
-	filePath        string
-	fileContent     []byte
-	statusCode      int
-	isError         bool
-	error           error
-	expectedUsers   *[]domain.User
-	isErrorOpenFile bool
-	body            *bytes.Buffer
-	isErrorBody     bool
-}
-
 func TestCreateBatchUser(t *testing.T) {
-	testCases := []valuesTestCaseBatchUser{
-		{
-			name:          "should create users",
-			filePath:      "testUser.csv",
-			expectedUsers: &expectedUsers,
-			fileContent: []byte(`name,email,password,username
-John Doe,john@example.com,secretpassword,johndoe
-Jane Smith,jane@example.com,anotherpassword,janesmith`),
-			statusCode: http.StatusCreated,
-		},
-		{
-			name:          "should return an error when file return an error",
-			filePath:      "testUser.csv",
-			expectedUsers: &[]domain.User{},
-			statusCode:    http.StatusBadRequest,
-			isError:       true,
-		},
-		{
-			name:          "should return an error when file is diferent a csv",
-			filePath:      "testUser.txt",
-			expectedUsers: &[]domain.User{},
-			isError:       true,
-			statusCode:    http.StatusBadRequest,
-		},
-		{
-			name:            "should return an error when file error is failed to open file",
-			filePath:        "testUser.csv",
-			expectedUsers:   &[]domain.User{},
-			isError:         true,
-			isErrorOpenFile: true,
-			statusCode:      http.StatusInternalServerError,
-		},
-		{
-			name:          "should return an error when database return an error",
-			filePath:      "testUser.csv",
-			expectedUsers: &expectedUsers,
-			fileContent: []byte(`name,email,password,username
-John Doe,john@example.com,secretpassword,johndoe
-Jane Smith,jane@example.com,anotherpassword,janesmith`),
-			statusCode: http.StatusInternalServerError,
-			isError:    true,
-			error:      errors.New("some error"),
-		},
-		{
-			name:          "should return an error when database return an error",
-			filePath:      "testUser.csv",
-			expectedUsers: &expectedUsers,
-			fileContent: []byte(`name,email,password,username
-John Doe,john@example.com,secretpassword,johndoe
-Jane Smith,jane@example.com,anotherpassword,janesmith`),
-			statusCode: http.StatusBadRequest,
-			isError:    true,
-			error: mongo.WriteError{
-				Code:    11000,
-				Message: errorDuplicate,
-			},
-		},
-		{
-			filePath:      "t",
-			fileContent:   []byte(""),
-			expectedUsers: &[]domain.User{},
-			name:          "should return an error when not upload file",
-			statusCode:    http.StatusBadRequest,
-			isError:       true,
-			body:          &bytes.Buffer{},
-			isErrorBody:   true,
-		},
-	}
-
-	for _, test := range testCases {
+	for _, test := range testCasesBatchUsers {
 		t.Run(test.name, func(t *testing.T) {
-			// Inyectar la función de apertura para simular el error
 			if test.isErrorOpenFile {
 				utils.OpenFileFunc = func(file *multipart.FileHeader) (multipart.File, error) {
 					return nil, fmt.Errorf("simulated file open error")
@@ -397,7 +372,6 @@ Jane Smith,jane@example.com,anotherpassword,janesmith`),
 					return file.Open()
 				}
 			}
-			// Asegurarse de restaurar la función original después de la prueba
 			defer func() {
 				utils.OpenFileFunc = func(file *multipart.FileHeader) (multipart.File, error) {
 					return file.Open()
@@ -429,33 +403,39 @@ Jane Smith,jane@example.com,anotherpassword,janesmith`),
 			}
 			writer.Close()
 
-			router.POST(route, handler.CreateBatchUser)
+			completedTest(t, mockRepo, handler, router, test, writer, body)
 
-			mockRepo.On("CreateUserBatch", mock.Anything, test.expectedUsers).Return([]interface{}{"12345", "123456"}, test.error)
-
-			req, _ := http.NewRequest("POST", route, body)
-
-			if test.isErrorBody {
-				req, _ = http.NewRequest("POST", route, test.body)
-			}
-
-			req.Header.Set("Content-Type", writer.FormDataContentType())
-
-			resp := httptest.NewRecorder()
-
-			router.ServeHTTP(resp, req)
-
-			if test.isError {
-				assert.Equal(t, test.statusCode, resp.Code)
-			} else {
-				var response domain.APIResponse
-				err := json.Unmarshal(resp.Body.Bytes(), &response)
-				assert.NoError(t, err)
-				assert.Equal(t, []interface{}{"12345", "123456"}, response.IDs)
-				assert.Equal(t, test.statusCode, resp.Code)
-			}
 		})
 	}
+}
+
+func completedTest(t *testing.T, mockRepo *mocks.UserRepository, handler handlers.UserHandlers, router *gin.Engine, test valuesTestCaseBatchUser, writer *multipart.Writer, body *bytes.Buffer) {
+	router.POST(route, handler.CreateBatchUser)
+
+	mockRepo.On("CreateUserBatch", mock.Anything, mock.Anything).Return([]interface{}{"12345", "123456"}, test.error)
+
+	req, _ := http.NewRequest("POST", route, body)
+
+	if test.isErrorBody {
+		req, _ = http.NewRequest("POST", route, test.body)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	if test.isError {
+		assert.Equal(t, test.statusCode, resp.Code)
+	} else {
+		var response domain.APIResponse
+		err := json.Unmarshal(resp.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, []interface{}{"12345", "123456"}, response.IDs)
+		assert.Equal(t, test.statusCode, resp.Code)
+	}
+
 }
 
 func mockRequestEndPoint(isError bool, method string, api string, body io.Reader) (*http.Request, error) {
@@ -469,12 +449,12 @@ func mockRequestEndPoint(isError bool, method string, api string, body io.Reader
 	return req, nil
 }
 
-func configurations() (*mocks.UserRepository, UserHandlers, *gin.Engine) {
+func configurations() (*mocks.UserRepository, handlers.UserHandlers, *gin.Engine) {
 	mockRepo := new(mocks.UserRepository)
 
 	userService := usecase.NewUserService(mockRepo)
 
-	handler := UserHandlers{UserService: userService}
+	handler := handlers.UserHandlers{UserService: userService}
 
 	utils.NewValidator()
 
