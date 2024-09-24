@@ -15,12 +15,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+var (
+	errorPassword = errors.New("hash password error")
+	userDoc       = bson.M{
+		"_id":      "12345",
+		"email":    "test@example.com",
+		"password": "hashedpassword",
+	}
+)
+
 type valuesTestCases struct {
 	name         string
 	body         *domain.User
 	bodyUsers    *[]domain.User
 	id           string
-	userResponse *domain.User
 	isError      bool
 	hashPassword string
 	err          error
@@ -43,23 +51,6 @@ var usersRequest = &[]domain.User{
 	},
 }
 
-// MockSingleResult mocks the mongo.SingleResult.
-type MockSingleResult struct {
-	mock.Mock
-}
-
-// Decode simulates decoding a result into a provided value.
-func (m *MockSingleResult) Decode(v interface{}) error {
-	args := m.Called(v)
-	if user, ok := v.(*domain.User); ok {
-		// Simulate the found user for a successful Decode call
-		user.ID = "12345"
-		user.Email = "test@example.com"
-		user.Password = "hashedpassword"
-	}
-	return args.Error(0)
-}
-
 func TestCreateUser(t *testing.T) {
 	testCases := []valuesTestCases{
 		{
@@ -68,10 +59,10 @@ func TestCreateUser(t *testing.T) {
 			hashPassword: "hashPassword",
 		},
 		{
-			name:        "should throw an error when hash password fails",
+			name:        "should throw an error create user when hash password fails",
 			body:        userRequest,
 			isError:     true,
-			errPassword: errors.New("hash password error"),
+			errPassword: errorPassword,
 		},
 		{
 			name:    "should throw an error when database fails",
@@ -116,7 +107,7 @@ func TestCreateUserBatch(t *testing.T) {
 			name:        "should throw an error when hash password fails",
 			bodyUsers:   usersRequest,
 			isError:     true,
-			errPassword: errors.New("hash password error"),
+			errPassword: errorPassword,
 		},
 		{
 			name:      "should throw an error when database fails",
@@ -169,12 +160,6 @@ func TestGetUserByID(t *testing.T) {
 			})
 			ctx := context.Background()
 
-			userDoc := bson.M{
-				"_id":      "12345",
-				"email":    "test@example.com",
-				"password": "hashedpassword",
-			}
-
 			singleResult := mongo.NewSingleResultFromDocument(userDoc, test.err, nil)
 
 			mockCollection.On("FindOne", ctx, mock.Anything).Return(singleResult, test.err).Once()
@@ -211,7 +196,7 @@ func TestUpdateUser(t *testing.T) {
 			id:          "123456",
 			body:        userRequest,
 			isError:     true,
-			errPassword: errors.New("hash password error"),
+			errPassword: errorPassword,
 		},
 	}
 
@@ -222,12 +207,6 @@ func TestUpdateUser(t *testing.T) {
 				return test.hashPassword, test.errPassword
 			})
 			ctx := context.Background()
-
-			userDoc := bson.M{
-				"_id":      "12345",
-				"email":    "test@example.com",
-				"password": "hashedpassword",
-			}
 
 			singleResult := mongo.NewSingleResultFromDocument(userDoc, test.err, nil)
 
@@ -264,12 +243,6 @@ func TestDeleteUser(t *testing.T) {
 				return test.hashPassword, test.errPassword
 			})
 			ctx := context.Background()
-
-			userDoc := bson.M{
-				"_id":      "12345",
-				"email":    "test@example.com",
-				"password": "hashedpassword",
-			}
 
 			singleResult := mongo.NewSingleResultFromDocument(userDoc, test.err, nil)
 
